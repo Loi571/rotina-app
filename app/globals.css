@@ -24,3 +24,15 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Transição suave global para interações */
+button, a, .transition-all {
+  transition-property: all;
+  transition-duration: 300ms;
+  transition-timing-function: ease-in-out;
+}
+
+/* Suaviza a rolagem em toda a página */
+html {
+  scroll-behavior: smooth;
+}

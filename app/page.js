@@ -16,7 +16,6 @@ export default function Home() {
   async function carregarOuGerar(data) {
     setLoading(true)
 
-    // 1. Tenta encontrar a semana que contém a data escolhida
     let { data: semana, error } = await supabase
       .from('semanas')
       .select('*')
@@ -25,32 +24,28 @@ export default function Home() {
       .limit(1)
       .single()
 
-    // 2. Verifica se a semana encontrada realmente cobre a data
     let semanaCobreData = false
     if (semana) {
       const inicioSemana = new Date(semana.data_inicio + 'T12:00:00')
       const fimSemana = new Date(inicioSemana)
-      fimSemana.setDate(fimSemana.getDate() + 6) // Domingo
+      fimSemana.setDate(fimSemana.getDate() + 6)
       const dataAtual = new Date(data + 'T12:00:00')
       semanaCobreData = dataAtual >= inicioSemana && dataAtual <= fimSemana
     }
 
-    // 3. Se não encontrou ou a semana não cobre, cria uma nova
     if (!semanaCobreData) {
       const dataObj = new Date(data + 'T12:00:00')
-      const diaSemana = (dataObj.getDay() + 6) % 7 // 0=Seg, 1=Ter, ..., 6=Dom
+      const diaSemana = (dataObj.getDay() + 6) % 7
       const segunda = new Date(dataObj)
       segunda.setDate(dataObj.getDate() - diaSemana)
       const dataInicio = segunda.toISOString().split('T')[0]
 
-      // Pede para a rota /api/gerar-semana criar tudo
       await fetch('/api/gerar-semana', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data_inicio: dataInicio })
       })
 
-      // Busca a semana que acabou de ser criada
       const { data: novaSemana } = await supabase
         .from('semanas')
         .select('*')
@@ -59,7 +54,6 @@ export default function Home() {
       semana = novaSemana
     }
 
-    // 4. Busca as tarefas do dia específico
     if (semana) {
       const { data: tarefasData } = await supabase
         .from('tarefas')
@@ -98,16 +92,17 @@ export default function Home() {
   const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6">
+    <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-2xl mx-auto">
-        {/* Cabeçalho */}
+
+        {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">📅 Rotina</h1>
           <div className="flex gap-2">
             {dataFiltro !== hoje && (
               <button
                 onClick={() => setDataFiltro(hoje)}
-                className="text-sm bg-blue-600 hover:bg-blue-500 px-3 py-1 rounded-lg transition-all"
+                className="text-sm bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded-lg transition-all"
               >
                 Hoje
               </button>
@@ -122,23 +117,23 @@ export default function Home() {
         </div>
 
         {/* Navegação de dias */}
-        <div className="flex items-center justify-between bg-gray-800 rounded-xl p-3 mb-4">
-          <button onClick={() => mudarDia(-1)} className="text-xl px-3 py-1 hover:bg-gray-700 rounded-lg">‹</button>
+        <div className="flex items-center justify-between bg-gray-800 border border-gray-700 rounded-xl p-3 mb-4">
+          <button onClick={() => mudarDia(-1)} className="text-xl px-3 py-1 hover:bg-gray-700 rounded-lg transition-all">‹</button>
           <div className="text-center">
             <p className="font-semibold capitalize">{formatarDia(dataFiltro)}</p>
-            {dataFiltro === hoje && <span className="text-xs text-green-400">hoje</span>}
+            {dataFiltro === hoje && <span className="text-xs text-indigo-400">hoje</span>}
           </div>
-          <button onClick={() => mudarDia(1)} className="text-xl px-3 py-1 hover:bg-gray-700 rounded-lg">›</button>
+          <button onClick={() => mudarDia(1)} className="text-xl px-3 py-1 hover:bg-gray-700 rounded-lg transition-all">›</button>
         </div>
 
         {/* Barra de progresso */}
-        <div className="bg-gray-800 rounded-xl p-4 mb-6">
+        <div className="bg-gray-800 border border-gray-700 rounded-xl p-4 mb-6">
           <div className="flex justify-between mb-2">
             <span>{concluidas}/{total} tarefas</span>
             <span className="font-bold">{percentual}%</span>
           </div>
           <div className="w-full bg-gray-700 rounded-full h-3">
-            <div className="bg-green-500 h-3 rounded-full transition-all" style={{ width: `${percentual}%` }} />
+            <div className="bg-indigo-500 h-3 rounded-full transition-all" style={{ width: `${percentual}%` }} />
           </div>
         </div>
 
@@ -153,17 +148,17 @@ export default function Home() {
               <div
                 key={tarefa.id}
                 onClick={() => toggleTarefa(tarefa.id, tarefa.concluida)}
-                className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all ${
-                  tarefa.concluida ? 'bg-green-900/40 opacity-70' : 'bg-gray-800 hover:bg-gray-700'
-                }`}
+                className={`flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all border
+                  ${tarefa.concluida
+                    ? 'bg-indigo-900/40 border-indigo-500/50 opacity-80'
+                    : 'bg-gray-800 border-gray-700 hover:bg-gray-700'}`}
               >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                  tarefa.concluida ? 'bg-green-500 border-green-500' : 'border-gray-500'
-                }`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                  ${tarefa.concluida ? 'bg-indigo-500 border-indigo-500' : 'border-gray-500'}`}>
                   {tarefa.concluida && <span className="text-xs">✓</span>}
                 </div>
                 <div className="flex-1">
-                  <p className={`font-medium ${tarefa.concluida ? 'line-through text-gray-400' : ''}`}>
+                  <p className={`font-medium ${tarefa.concluida ? 'line-through text-gray-500' : ''}`}>
                     {tarefa.nome}
                   </p>
                   <p className="text-sm text-gray-400">

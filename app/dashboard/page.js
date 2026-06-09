@@ -42,18 +42,18 @@ export default function Dashboard() {
   }
 
   function corBarra(percentual) {
-    if (percentual >= 80) return 'bg-green-500'
-    if (percentual >= 50) return 'bg-yellow-500'
+    if (percentual >= 80) return 'bg-indigo-500'
+    if (percentual >= 50) return 'bg-amber-500'
     if (percentual >= 20) return 'bg-orange-500'
     return 'bg-red-500'
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white p-6">
+    <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-2xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">📊 Dashboard</h1>
-          <a href="/" className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-lg">
+          <a href="/" className="text-sm bg-gray-700 hover:bg-gray-600 px-3 py-1 rounded-lg transition-all">
             ← Voltar
           </a>
         </div>
@@ -63,10 +63,13 @@ export default function Dashboard() {
         ) : (
           <div className="space-y-4">
             {semanas.map(semana => (
-              <div key={semana.id} className="bg-gray-800 rounded-xl p-4">
+              <div key={semana.id} className="bg-gray-800 border border-gray-700 rounded-xl p-4">
                 <div className="flex justify-between items-center mb-2">
                   <span className="font-semibold">Semana de {formatarData(semana.data_inicio)}</span>
-                  <span className={`font-bold text-lg ${semana.percentual >= 80 ? 'text-green-400' : semana.percentual >= 50 ? 'text-yellow-400' : 'text-red-400'}`}>
+                  <span className={`font-bold text-lg ${
+                    semana.percentual >= 80 ? 'text-indigo-400' :
+                    semana.percentual >= 50 ? 'text-amber-400' : 'text-red-400'
+                  }`}>
                     {semana.percentual}%
                   </span>
                 </div>
