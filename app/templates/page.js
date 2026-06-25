@@ -68,7 +68,8 @@ export default function Templates() {
       categoria: template.categoria,
       hora_inicio: template.hora_inicio,
       hora_fim: template.hora_fim,
-      dias: template.dias
+      dias: template.dias,
+      valid_from: template.valid_from
     }).eq('id', template.id)
     setEditando(null)
     carregarTemplates()
@@ -82,6 +83,7 @@ export default function Templates() {
       hora_inicio: novoForm.hora_inicio,
       hora_fim: novoForm.hora_fim,
       dias: novoForm.dias,
+      valid_from: novoForm.valid_from,
       ativo: true
     })
     setNovoForm(null)
@@ -100,7 +102,8 @@ export default function Templates() {
       categoria: '💻 Produtividade',
       hora_inicio: '09:00',
       hora_fim: '10:00',
-      dias: 'Seg,Ter,Qua,Qui,Sex'
+      dias: 'Seg,Ter,Qua,Qui,Sex',
+      valid_from: new Date().toISOString().split('T')[0]
     })
   }
 
@@ -142,6 +145,12 @@ export default function Templates() {
                     </div>
                     <input className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-sm" value={editando.dias}
                       onChange={e => setEditando({ ...editando, dias: e.target.value })} placeholder="Dias" />
+                    <input
+                      type="date"
+                      className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-sm"
+                      value={editando.valid_from}
+                      onChange={e => setEditando({ ...editando, valid_from: e.target.value })}
+                    />
                     <div className="flex gap-2 justify-end">
                       <button onClick={() => setEditando(null)} className="text-sm bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-lg transition-all">Cancelar</button>
                       <button onClick={() => salvarEdicao(editando)} className="text-sm bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded-lg transition-all">Salvar</button>
@@ -155,9 +164,12 @@ export default function Templates() {
                       <p className="font-medium">{template.nome}</p>
                       <p className="text-sm text-gray-400">{template.hora_inicio} – {template.hora_fim} · {template.categoria}</p>
                       <p className="text-xs text-gray-500">{template.dias}</p>
+                      {template.valid_from && (
+                        <p className="text-xs text-indigo-400">Válido desde: {new Date(template.valid_from + 'T12:00:00').toLocaleDateString('pt-BR')}</p>
+                      )}
                     </div>
                     <div className="flex gap-2">
-                      <button onClick={() => setEditando(template)} className="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition-all">✏️</button>
+                      <button onClick={() => setEditando({ ...template, valid_from: template.valid_from || '2026-01-01' })} className="text-xs bg-gray-700 hover:bg-gray-600 px-2 py-1 rounded transition-all">✏️</button>
                       <button onClick={() => deletar(template.id)} className="text-xs bg-red-900 hover:bg-red-800 px-2 py-1 rounded transition-all">🗑️</button>
                     </div>
                   </div>
@@ -180,6 +192,12 @@ export default function Templates() {
                 </div>
                 <input className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-sm" value={novoForm.dias}
                   onChange={e => setNovoForm({ ...novoForm, dias: e.target.value })} placeholder="Dias (Seg,Ter,Qua,Qui,Sex)" />
+                <input
+                  type="date"
+                  className="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-sm"
+                  value={novoForm.valid_from}
+                  onChange={e => setNovoForm({ ...novoForm, valid_from: e.target.value })}
+                />
                 <div className="flex gap-2 justify-end">
                   <button onClick={() => setNovoForm(null)} className="text-sm bg-gray-600 hover:bg-gray-500 px-3 py-1 rounded-lg transition-all">Cancelar</button>
                   <button onClick={salvarNovo} className="text-sm bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded-lg transition-all">Salvar</button>
