@@ -1,18 +1,34 @@
 'use client'
 
 import { useEffect, useState, useRef } from 'react'
-import { supabase } from '../lib/supabase'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter } from 'next/navigation'
 
 export default function Templates() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+  const router = useRouter()
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [user, setUser] = useState(null)
   const [editando, setEditando] = useState(null)
   const [novoForm, setNovoForm] = useState(null)
   const formRef = useRef(null)
 
+  // Verifica autenticação
   useEffect(() => {
-    carregarTemplates()
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data?.user) router.push('/login')
+      else setUser(data.user)
+    })
   }, [])
+
+  useEffect(() => {
+    if (user) carregarTemplates()
+  }, [user])
 
   useEffect(() => {
     if (novoForm && formRef.current) {
@@ -21,12 +37,24 @@ export default function Templates() {
   }, [novoForm])
 
   async function carregarTemplates() {
-    const { data } = await supabase
-      .from('templates')
-      .select('*')
-      .order('hora_inicio')
-    setTemplates(data || [])
-    setLoading(false)
+    if (!user) return
+    setLoading(true)
+    setError(null)
+
+    try {
+      const { data, error: errTemplates } = await supabase
+        .from('templates')
+        .select('*')
+        .order('hora_inicio')
+
+      if (errTemplates) throw errTemplates
+      setTemplates(data || [])
+    } catch (err) {
+      console.error('Erro ao carregar templates:', err)
+      setError('Erro ao carregar templates.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function toggleAtivo(id, ativo) {
@@ -75,6 +103,9 @@ export default function Templates() {
       dias: 'Seg,Ter,Qua,Qui,Sex'
     })
   }
+
+  if (!user) return null
+  if (error) return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">{error}</div>
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">

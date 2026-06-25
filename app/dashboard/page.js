@@ -1,39 +1,68 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter } from 'next/navigation'
 
 export default function Dashboard() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+  const router = useRouter()
   const [semanas, setSemanas] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [user, setUser] = useState(null)
 
+  // Verifica autenticação
   useEffect(() => {
-    carregarDados()
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data?.user) router.push('/login')
+      else setUser(data.user)
+    })
   }, [])
 
+  useEffect(() => {
+    if (user) carregarDados()
+  }, [user])
+
   async function carregarDados() {
-    const { data: semanasData } = await supabase
-      .from('semanas')
-      .select('*')
-      .order('data_inicio', { ascending: false })
+    if (!user) return
+    setLoading(true)
+    setError(null)
 
-    const resultado = []
+    try {
+      const { data: semanasData, error: errSemanas } = await supabase
+        .from('semanas')
+        .select('*')
+        .order('data_inicio', { ascending: false })
 
-    for (const semana of semanasData) {
-      const { data: tarefas } = await supabase
-        .from('tarefas')
-        .select('concluida')
-        .eq('semana_id', semana.id)
+      if (errSemanas) throw errSemanas
 
-      const total = tarefas.length
-      const concluidas = tarefas.filter(t => t.concluida).length
-      const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0
+      const resultado = []
+      for (const semana of semanasData || []) {
+        const { data: tarefas, error: errTarefas } = await supabase
+          .from('tarefas')
+          .select('concluida')
+          .eq('semana_id', semana.id)
 
-      resultado.push({ ...semana, total, concluidas, percentual })
+        if (errTarefas) throw errTarefas
+
+        const total = tarefas.length
+        const concluidas = tarefas.filter(t => t.concluida).length
+        const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0
+
+        resultado.push({ ...semana, total, concluidas, percentual })
+      }
+
+      setSemanas(resultado)
+    } catch (err) {
+      console.error('Erro ao carregar dashboard:', err)
+      setError('Erro ao carregar dados. Tente recarregar a página.')
+    } finally {
+      setLoading(false)
     }
-
-    setSemanas(resultado)
-    setLoading(false)
   }
 
   function formatarData(dataStr) {
@@ -47,6 +76,9 @@ export default function Dashboard() {
     if (percentual >= 20) return 'bg-orange-500'
     return 'bg-red-500'
   }
+
+  if (!user) return null
+  if (error) return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">{error}</div>
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">

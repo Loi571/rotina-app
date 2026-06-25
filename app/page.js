@@ -1,71 +1,99 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { supabase } from './lib/supabase'
+import { createBrowserClient } from '@supabase/ssr'
+import { useRouter } from 'next/navigation'
 
 export default function Home() {
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+  const router = useRouter()
   const [tarefas, setTarefas] = useState([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [user, setUser] = useState(null)
   const hoje = new Date().toISOString().split('T')[0]
   const [dataFiltro, setDataFiltro] = useState(hoje)
 
+  // Verificar usuário logado
   useEffect(() => {
-    carregarOuGerar(dataFiltro)
-  }, [dataFiltro])
+    supabase.auth.getUser().then(({ data }) => {
+      if (!data?.user) router.push('/login')
+      else setUser(data.user)
+    })
+  }, [])
+
+  useEffect(() => {
+    if (user) carregarOuGerar(dataFiltro)
+  }, [dataFiltro, user])
 
   async function carregarOuGerar(data) {
+    if (!user) return
     setLoading(true)
+    setError(null)
 
-    let { data: semana, error } = await supabase
-      .from('semanas')
-      .select('*')
-      .lte('data_inicio', data)
-      .order('data_inicio', { ascending: false })
-      .limit(1)
-      .single()
-
-    let semanaCobreData = false
-    if (semana) {
-      const inicioSemana = new Date(semana.data_inicio + 'T12:00:00')
-      const fimSemana = new Date(inicioSemana)
-      fimSemana.setDate(fimSemana.getDate() + 6)
-      const dataAtual = new Date(data + 'T12:00:00')
-      semanaCobreData = dataAtual >= inicioSemana && dataAtual <= fimSemana
-    }
-
-    if (!semanaCobreData) {
-      const dataObj = new Date(data + 'T12:00:00')
-      const diaSemana = (dataObj.getDay() + 6) % 7
-      const segunda = new Date(dataObj)
-      segunda.setDate(dataObj.getDate() - diaSemana)
-      const dataInicio = segunda.toISOString().split('T')[0]
-
-      await fetch('/api/gerar-semana', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data_inicio: dataInicio })
-      })
-
-      const { data: novaSemana } = await supabase
+    try {
+      let { data: semana, error } = await supabase
         .from('semanas')
         .select('*')
-        .eq('data_inicio', dataInicio)
+        .lte('data_inicio', data)
+        .order('data_inicio', { ascending: false })
+        .limit(1)
         .single()
-      semana = novaSemana
-    }
 
-    if (semana) {
-      const { data: tarefasData } = await supabase
-        .from('tarefas')
-        .select('*')
-        .eq('semana_id', semana.id)
-        .eq('data', data)
-        .order('hora_inicio')
-      setTarefas(tarefasData || [])
-    } else {
-      setTarefas([])
+      if (error && error.code !== 'PGRST116') throw error
+
+      let semanaCobreData = false
+      if (semana) {
+        const inicioSemana = new Date(semana.data_inicio + 'T12:00:00')
+        const fimSemana = new Date(inicioSemana)
+        fimSemana.setDate(fimSemana.getDate() + 6)
+        const dataAtual = new Date(data + 'T12:00:00')
+        semanaCobreData = dataAtual >= inicioSemana && dataAtual <= fimSemana
+      }
+
+      if (!semanaCobreData) {
+        const dataObj = new Date(data + 'T12:00:00')
+        const diaSemana = (dataObj.getDay() + 6) % 7
+        const segunda = new Date(dataObj)
+        segunda.setDate(dataObj.getDate() - diaSemana)
+        const dataInicio = segunda.toISOString().split('T')[0]
+
+        const res = await fetch('/api/gerar-semana', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data_inicio: dataInicio })
+        })
+        if (!res.ok) throw new Error('Falha ao gerar semana')
+
+        const { data: novaSemana } = await supabase
+          .from('semanas')
+          .select('*')
+          .eq('data_inicio', dataInicio)
+          .single()
+        semana = novaSemana
+      }
+
+      if (semana) {
+        const { data: tarefasData, error: errTarefas } = await supabase
+          .from('tarefas')
+          .select('*')
+          .eq('semana_id', semana.id)
+          .eq('data', data)
+          .order('hora_inicio')
+        if (errTarefas) throw errTarefas
+        setTarefas(tarefasData || [])
+      } else {
+        setTarefas([])
+      }
+    } catch (err) {
+      console.error('Erro:', err)
+      setError('Banco de dados em modo espera – aguarde e recarregue')
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   async function toggleTarefa(id, concluida) {
@@ -91,10 +119,12 @@ export default function Home() {
   const concluidas = tarefas.filter(t => t.concluida).length
   const percentual = total > 0 ? Math.round((concluidas / total) * 100) : 0
 
+  if (!user) return null
+  if (error) return <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">{error}</div>
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-6">
       <div className="max-w-2xl mx-auto">
-
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h1 className="text-2xl font-bold">📅 Rotina</h1>
