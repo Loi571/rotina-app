@@ -153,7 +153,7 @@ export default function Home() {
                     ? 'bg-indigo-900/40 border-indigo-500/50 opacity-80'
                     : 'bg-gray-800 border-gray-700 hover:bg-gray-700'}`}
               >
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-all
                   ${tarefa.concluida ? 'bg-indigo-500 border-indigo-500' : 'border-gray-500'}`}>
                   {tarefa.concluida && <span className="text-xs">✓</span>}
                 </div>
